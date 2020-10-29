@@ -178,4 +178,75 @@ public class RedisController {
             System.out.println("好");
         }
     }
+
+    /**
+     * 使用lua脚本的方式操作redis命令
+     * @return
+     */
+    @GetMapping("/redisLuaDelete")
+    public Object redisLuaDelete() {
+        String no = "1001|3550|"; //要删除的机构号的key
+        String superNo = "1001|RETAIN";
+
+        // 全局变量
+        String local =
+                "local delOrganizeNo = '"+no+"'; \n" +
+                        "local delOrganizeNoLength = '"+(no.length()+1)+"'; \n" +   // 注意：lua的下标从1开始
+                        "local ta_prd = '"+ta_prd+"'; \n" +
+                        "local delNo = '"+(no+"TOTAL")+"'; \n" +
+                        "local delValueTem = ''; \n" +
+                        "local superNo = '"+superNo+"'; \n" +
+                        "local retCode = 'success'; \n" +
+                        "local retMessage = '处理成功'; \n" +
+                        "local errCode = 'error'; \n" +
+                        "local successCode='success'; \n" +
+                        "local returnTable = {}; \n";
+
+        StringBuffer sf = new StringBuffer();
+        sf.append(local);
+
+        String delOrNo =
+                "local value = redis.pcall('hget',ta_prd,delNo); \n" +
+                "delValueTem = value; \n" +
+                "if (value) then \n" +
+                "   retCode = successCode;\n" +
+                "else \n" +
+                "   retCode = errCode;\n"+
+                "   retMessage='额度已删除';\n"+
+                "end \n";
+        sf.append(delOrNo);
+        // 日志和返回结果
+        String log =
+                "redis.log(redis.LOG_NOTICE,'删除额度的TA_产品['..ta_prd..']'); \n" + //.. 在java中是 + 的意思，连接
+                        "returnTable['retCode'] = retCode;\n" +
+                        "returnTable['retMessage'] = retMessage; \n" +
+                        "returnTable['delValueTem'] = delValueTem; \n" +
+                        "return cjson.encode(returnTable); \n";
+        sf.append(log);
+
+        FastJsonRedisSerializer<String> serializer = new FastJsonRedisSerializer(String.class);
+        DefaultRedisScript redisScript = new DefaultRedisScript();
+        redisScript.setResultType(String.class);
+        redisScript.setScriptText(sf.toString());
+        System.out.println(sf.toString());
+
+        String execute = stringRedisTemplate.execute(redisScript, serializer, serializer, null);
+        JSONObject jsonObject = JSONObject.parseObject(execute);
+
+        Object retCode = jsonObject.get("retCode");
+        if ("error".equals(retCode)) {
+            throw new RuntimeException(jsonObject.get("retMessage").toString());
+        }
+
+        return execute;
+    }
+
+    @GetMapping("/testDelete")
+    public Object testDelete() {
+        String taPrd = "4B|70B856";
+        Long delete = stringRedisTemplate.opsForHash().delete(taPrd, "1001|TOTAL");
+        Object o = stringRedisTemplate.opsForHash().get(taPrd, "1001|TOTAL");
+        System.out.println(o);
+        return o;
+    }
 }
