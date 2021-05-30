@@ -9,12 +9,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 import java.util.Set;
 
-@RestController
+//@RestController
 public class RedisController {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
