@@ -23,6 +23,10 @@ public class RedisConfiguration {
         return template;
     }
 
+    /**
+     * spring session serializer
+     * @return
+     */
     @Bean
     RedisSerializer<Object> springSessionDefaultRedisSerializer() {
 //        return new CustomRedisSerializer();
